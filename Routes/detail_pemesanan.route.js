@@ -4,10 +4,12 @@ const express = require('express');
 const detailPemesananController = require("../Controllers/detail_pemesanan.controller");
 const route = new express.Router();
 
-route.get("/", detailPemesananController.getAll);
-route.get("/:id", detailPemesananController.getId);
-route.post("/", detailPemesananController.add);
-route.put("/:id", detailPemesananController.update);
-route.delete("/:id", detailPemesananController.delete);
+const { verifyResepsionis } = require("../Auth/verify");
+
+//akses resepsionis
+route.get("/", verifyResepsionis, detailPemesananController.getAll);
+route.post("/sisa-kamar", verifyResepsionis, detailPemesananController.sisaKamar);
+route.delete("/:id", verifyResepsionis, detailPemesananController.delete);
+route.post("/find", verifyResepsionis, detailPemesananController.find);
 
 module.exports = route;

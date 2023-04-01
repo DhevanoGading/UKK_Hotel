@@ -4,10 +4,16 @@ const express = require('express');
 const pemesananController = require("../Controllers/pemesanan.controller");
 const route = new express.Router();
 
-route.get("/", pemesananController.getAll);
-route.get("/:id", pemesananController.getId);
+const { verifyResepsionis } = require("../Auth/verify");
+
+//akses resepsionis
+route.get("/", verifyResepsionis, pemesananController.getAll);
+route.get("/filter", verifyResepsionis, pemesananController.getPemesanan);
+route.put("/status/:id", verifyResepsionis, pemesananController.updateStatus);
+route.delete("/:id", verifyResepsionis, pemesananController.delete);
+
+//akses resepsionis dan tamu
+route.post("/find", pemesananController.find);
 route.post("/", pemesananController.add);
-route.put("/:id", pemesananController.update);
-route.delete("/:id", pemesananController.delete);
 
 module.exports = route;

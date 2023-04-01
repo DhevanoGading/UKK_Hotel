@@ -10,66 +10,70 @@ module.exports = {
         db.query(`SELECT * FROM detail_pemesanan`, (err, result) => {
             if (err) throw err
             res.json({
+                count: result.length,
                 message: "Berhasil menampikan semua data detail_pemesanan",
                 detail_pemesanan: result
             });
         });
     },
 
-    //menampilkan detail_pemesanan berdasarkan id
-    getId: (req, res) => {
-        const id = req.params.id;
+    //filtering sisa kamar
+    sisaKamar: (req, res) => {
+        let tgl_check_in = req.body.tgl_check_in;
+        let tgl_check_out = req.body.tgl_check_out;
 
-        db.query(`SELECT * FROM detail_pemesanan WHERE id_detail_pemesanan = ${id}`, (err, result) => {
-            if (err) throw err
+        let sql = `
+            SELECT tipe_kamar.*, 
+            count(kamar.id_kamar) 
+                as sisa_kamar
+            FROM kamar
+            LEFT JOIN 
+                tipe_kamar ON kamar.id_tipe_kamar = tipe_kamar.id_tipe_kamar
+            LEFT JOIN 
+                detail_pemesanan ON detail_pemesanan.id_kamar = kamar.id_kamar 
+            AND  
+                detail_pemesanan.tgl_akses BETWEEN "${tgl_check_in}" AND "${tgl_check_out}"
+            WHERE 
+                detail_pemesanan.tgl_akses IS NULL
+            GROUP BY 
+                tipe_kamar.id_tipe_kamar
+        `;
+
+        db.query(sql, (err, result) => {
+            if(err) throw err;
             res.json({
-                message: `Berhasil menampikan data detail_pemesanan dengan id ${id}`,
-                detail_pemesanan: result
+                count: result.length,
+                message: "Berhasil mengambil data detail pemesanan",
+                data: result
             });
         });
     },
 
-    //menambahkan detail_pemesanan
-    add: (req, res) => {
-        let detail_pemesanan = {
-            tgl_akses: req.body.tgl_akses,
-            harga: req.body.harga
-        };
-        if (!detail_pemesanan.tgl_akses || !detail_pemesanan.harga) {
-            res.json({
-                message: "Nama detail_pemesanan, id_tipe_detail_pemesanan harus diisi!",
+    //mencari data detail pemesanan berdasarkan tgl akses
+    find: (req, res) => {
+        const tgl_check_in = req.body.tgl_check_in;
+        const tgl_check_out = req.body.tgl_check_out;
+        
+        const sql = `
+            SELECT detail_pemesanan.*, pemesanan.*, kamar.*, tipe_kamar.*
+            FROM detail_pemesanan
+            INNER JOIN pemesanan ON detail_pemesanan.id_pemesanan = pemesanan.id_pemesanan
+            INNER JOIN kamar ON detail_pemesanan.id_kamar = kamar.id_kamar
+            INNER JOIN tipe_kamar ON kamar.id_tipe_kamar = tipe_kamar.id_tipe_kamar
+            WHERE tgl_akses BETWEEN "${tgl_check_in}" AND "${tgl_check_out}"
+        `;
+        
+        db.query(sql, (error, result) => {
+        if (error) {
+            console.error('Error executing query', error);
+            return res.json({ message: error.message });
+        }
+    
+        return res.json({ 
+                count: result.length,
+                data: result 
             });
-        } else {
-            db.query(`UPDATE detail_pemesanan SET ?`, detail_pemesanan, (err, result) => {
-                if (err) throw err;
-                res.json({
-                    message: "Berhasil menambahkan detail_pemesanan",
-                    detail_pemesanan: detail_pemesanan
-                });
-            });
-        };
-    },
-
-    //mengubah detail_pemesanan
-    update: (req, res) => {
-        const id = req.params.id;
-        let detail_pemesanan = {
-            tgl_akses: req.body.tgl_akses,
-            harga: req.body.harga
-        };
-        if (!detail_pemesanan.tgl_akses || !detail_pemesanan.harga) {
-            res.json({
-                message: "Nama tgl_akses, dan harga harus diisi!",
-            });
-        } else {
-            db.query(`INSERT INTO detail_pemesanan SET ? WHERE id_detail_pemesanan = '${id}'`, detail_pemesanan, (err, result) => {
-                if (err) throw err;
-                res.json({
-                    message: "Berhasil mengubah detail_pemesanan",
-                    detail_pemesanan: detail_pemesanan,
-                });
-            });
-        };
+        });
     },
 
     //menghapus data detail_pemesanan
